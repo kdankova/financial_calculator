@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Streamlit specific
+.streamlit/
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+*.env
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*.so
+
+# IDE settings (optional)
+.vscode/
+.idea/

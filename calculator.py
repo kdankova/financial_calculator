@@ -1,37 +1,31 @@
 import streamlit as st
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-import locale
 import re
 
-# Устанавливаем локальные настройки
-locale.setlocale(locale.LC_NUMERIC, '')  # Региональные настройки
-decimal_sep = locale.localeconv()['decimal_point']
-
-
-# Функция для проверки и парсинга чисел с пробелами
+# Функция для проверки и парсинга чисел с пробелами или без
 def parse_input(number_str):
-    # Проверка на корректность разделителей
-    if not re.match(r'^\d{1,3}( \d{3})*(\.\d+)?$', number_str.replace(",", ".")):
-        st.error("Некорректный формат числа! Используйте пробелы для разделения тысяч.")
+    # Регулярное выражение для проверки формата (либо пробелы между группами, либо их отсутствие)
+    if not re.match(r'^\d{1,3}( \d{3})*(\.\d+)?$|^\d+(\.\d+)?$', number_str.strip().replace(",", ".")):
+        st.error("Некорректный формат числа! Используйте пробелы для разделения тысяч или вводите числа без пробелов.")
         return None
     try:
         # Удаляем пробелы и преобразуем запятую в точку
-        number_str = number_str.replace(" ", "").replace(",", ".")
-        return Decimal(number_str)
+        normalized_number = number_str.replace(" ", "").replace(",", ".")
+        return Decimal(normalized_number)
     except InvalidOperation:
         st.error("Введите корректное число!")
         return None
 
-
 # Функция для форматирования вывода
 def format_output(result):
     # Преобразование в строку с 6 знаками после запятой, округление математически
-    result_str = f"{result.quantize(Decimal('0.000000'), rounding=ROUND_HALF_UP):,.6f}"
+    result = result.quantize(Decimal('0.000000'), rounding=ROUND_HALF_UP)
+    # Разбиение на группы тысяч и замена разделителей
+    result_str = f"{result:,}".replace(",", " ").replace(".", ".")
     # Убираем незначащие нули в дробной части
-    return result_str.replace(",", " ").rstrip("0").rstrip(".")
+    return result_str.rstrip("0").rstrip(".")
 
-
-# Заголовок с ФИО и информацией
+# Заголовок
 st.title("Финансовый калькулятор")
 st.markdown("#### Данькова Екатерина Григорьевна")
 st.markdown("#### 3 курс 11 группа")
@@ -76,3 +70,4 @@ if num1 is not None and num2 is not None:
                 st.error("Результат выходит за пределы допустимого диапазона!")
     except InvalidOperation:
         st.error("Произошла ошибка при вычислении!")
+

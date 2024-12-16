@@ -4,14 +4,14 @@ import re
 
 # Функция для проверки и парсинга чисел с пробелами или без
 def parse_input(number_str):
-    if not re.match(r'^\d{1,3}( \d{3})*(\.\d+)?$|^\d+(\.\d+)?$', number_str.strip().replace(",", ".")):
-        st.error("Некорректный формат числа! Используйте пробелы для разделения тысяч или вводите числа без пробелов.")
+    if not re.match(r'^-?\d{1,3}( \d{3})*(\.\d+)?$|^-?\d+(\.\d+)?$', number_str.strip().replace(",", ".")):
+        st.error("Некорректный формат числа! Используйте пробелы для разделения тысяч или вводите числа без пробелов. Допускаются отрицательные числа.")
         return None
     try:
         normalized_number = number_str.replace(" ", "").replace(",", ".")
         return Decimal(normalized_number)
     except InvalidOperation:
-        st.error("Введите корректное число!")
+        st.error("Некорректный формат числа! Используйте пробелы для разделения тысяч или вводите числа без пробелов. Допускаются отрицательные числа, например: -123 456.789")
         return None
 
 # Функция для форматирования вывода
@@ -20,104 +20,81 @@ def format_output(result):
     result_str = f"{result:,}".replace(",", " ").replace(".", ".")
     return result_str
 
-# Функция для округления до целых по разным методам
-def round_result(result, method):
-    if method == "Математическое":
-        return result.to_integral_value(rounding=ROUND_HALF_UP)
-    elif method == "Бухгалтерское":
-        return result.to_integral_value(rounding=ROUND_HALF_EVEN)
-    elif method == "Усечение":
-        return result.to_integral_value(rounding=ROUND_DOWN)
+# Функция вычислений
+def calculate(number1, number2, number3, number4, op1, op2, op3):
+    def get_result(num1, num2, operation):
+        if operation == "+":
+            return num1 + num2
+        elif operation == "-":
+            return num1 - num2
+        elif operation == "*":
+            return num1 * num2
+        elif operation == "/":
+            if num2 == Decimal('0'):
+                st.error("Ошибка: Деление на ноль невозможно!")
+                return None
+            return num1 / num2
+        return None
+
+    result1 = get_result(number2, number3, op2)
+    if result1 is None:
+        return None
+
+    if op3 in ['*', '/'] and op1 in ['+', '-']:
+        result2 = get_result(result1, number4, op3)
+        if result2 is None:
+            return None
+        result3 = get_result(number1, result2, op1)
+    else:
+        result2 = get_result(number1, result1, op1)
+        if result2 is None:
+            return None
+        result3 = get_result(result2, number4, op3)
+
+    if result3 is not None:
+        return result3.quantize(Decimal('1.000000'), rounding=ROUND_HALF_UP)
     return None
 
-# Заголовок
+# Streamlit UI
 st.title("Финансовый калькулятор")
-st.markdown("#### Данькова Екатерина Григорьевна")
-st.markdown("#### 3 курс 11 группа")
-st.markdown("#### 2024")
 
-# Горизонтальный ввод чисел и операций
-col1, col2, col3, col4, col5, col6, col7 = st.columns([3, 2, 3, 2, 3, 2, 3])
 
-with col1:
-    num1_str = st.text_input("Число 1", value="0")
-with col2:
-    operation1 = st.selectbox("Операция 1", ["+", "-", "*", "/"])
-with col3:
-    num2_str = st.text_input("Число 2", value="0")
-with col4:
-    operation2 = st.selectbox("Операция 2 (приоритет)", ["+", "-", "*", "/"])
-with col5:
-    num3_str = st.text_input("Число 3", value="0")
-with col6:
-    operation3 = st.selectbox("Операция 3", ["+", "-", "*", "/"])
-with col7:
-    num4_str = st.text_input("Число 4", value="0")
+st.sidebar.text("Данькова Екатерина Григорьевна\nКурс: 3\nГруппа: 11\nГод: 2024")
+st.text("Число 1 x ( Число 2 x Число 3 ) x Число 4")
 
-# Парсинг чисел
-num1 = parse_input(num1_str)
-num2 = parse_input(num2_str)
-num3 = parse_input(num3_str)
-num4 = parse_input(num4_str)
+# Ввод чисел
+number1_str = st.text_input("Число 1", value="0")
+number2_str = st.text_input("Число 2", value="0")
+number3_str = st.text_input("Число 3", value="0")
+number4_str = st.text_input("Число 4", value="0")
 
-if all(x is not None for x in [num1, num2, num3, num4]):
-    try:
-        # Промежуточное вычисление: num2 (op2) num3
-        intermediate_result = None
-        if operation2 == "+":
-            intermediate_result = num2 + num3
-        elif operation2 == "-":
-            intermediate_result = num2 - num3
-        elif operation2 == "*":
-            intermediate_result = num2 * num3
-        elif operation2 == "/":
-            if num3 == 0:
-                st.error("Ошибка: Деление на 0 невозможно!")
-            else:
-                intermediate_result = num2 / num3
+# Парсинг введённых значений
+number1 = parse_input(number1_str)
+number2 = parse_input(number2_str)
+number3 = parse_input(number3_str)
+number4 = parse_input(number4_str)
 
-        if intermediate_result is not None:
-            intermediate_result = intermediate_result.quantize(Decimal('0.0000000000'), rounding=ROUND_HALF_UP)
+# Выбор операций
+operation1 = st.selectbox("Операция 1", ["+", "-", "*", "/"], index=0)
+operation2 = st.selectbox("Операция 2", ["+", "-", "*", "/"], index=0)
+operation3 = st.selectbox("Операция 3", ["+", "-", "*", "/"], index=0)
 
-        # Основное вычисление: num1 (op1) intermediate_result
-        final_result = None
-        if intermediate_result is not None:
-            if operation1 == "+":
-                final_result = num1 + intermediate_result
-            elif operation1 == "-":
-                final_result = num1 - intermediate_result
-            elif operation1 == "*":
-                final_result = num1 * intermediate_result
-            elif operation1 == "/":
-                if intermediate_result == 0:
-                    st.error("Ошибка: Деление на 0 невозможно!")
-                else:
-                    final_result = num1 / intermediate_result
+# Выбор округления
+rounding_method = st.selectbox("Вид округления", ["математическое", "бухгалтерское", "усечение"], index=0)
 
-            # Последнее вычисление: final_result (op3) num4
-            if final_result is not None:
-                if operation3 == "+":
-                    final_result = final_result + num4
-                elif operation3 == "-":
-                    final_result = final_result - num4
-                elif operation3 == "*":
-                    final_result = final_result * num4
-                elif operation3 == "/":
-                    if num4 == 0:
-                        st.error("Ошибка: Деление на 0 невозможно!")
-                    else:
-                        final_result = final_result / num4
+if st.button("Вычислить"):
+    if None in [number1, number2, number3, number4]:
+        st.error("Введите корректные значения!")
+    else:
+        result = calculate(number1, number2, number3, number4, operation1, operation2, operation3)
+        if result is not None:
+            st.subheader(f"Результат: {format_output(result)}")
 
-                # Проверка диапазона
-                max_value = Decimal("1000000000000.0000000000")
-                if abs(final_result) > max_value:
-                    st.error("Переполнение! Результат выходит за пределы диапазона.")
-                else:
-                    st.write(f"Результат вычисления: {format_output(final_result)}")
+            if rounding_method == "математическое":
+                rounded_result = result.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+            elif rounding_method == "бухгалтерское":
+                rounded_result = result.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
+            elif rounding_method == "усечение":
+                rounded_result = result.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
-                    # Выбор вида округления
-                    rounding_method = st.radio("Выберите вид округления результата", ("Математическое", "Бухгалтерское", "Усечение"))
-                    rounded_result = round_result(final_result, rounding_method)
-                    st.write(f"Округленный результат: {rounded_result}")
-    except InvalidOperation:
-        st.error("Произошла ошибка при вычислении!")
+            st.subheader(f"Округлённый результат: {format_output(rounded_result)}")
